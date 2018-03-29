@@ -1,0 +1,109 @@
+c---------------------------------------------------------------------------------------------*
+c     Debug lines for inserting massless charge for TIP4P
+c---------------------------------------------------------------------------------------------*
+      print *, cname((i-1)*3 + j)
+	  
+      print *, 'o_pos', o_pos
+      print *, 'om_pos', om_pos
+	  
+	  unit_x(1)   = 1.d0
+      unit_x(2)   = 0.d0
+      unit_x(3)   = 0.d0
+      unit_y(1)   = 0.d0
+      unit_y(2)   = 1.d0
+      unit_y(3)   = 0.d0
+      unit_z(1)   = 0.d0
+      unit_z(2)   = 0.d0
+      unit_z(3)   = 1.d0
+	  
+	  print *, 'PI/2', pi/2.d0
+      print *, '104.52 deg = ', 104.52*(pi/180.d0), 'radians'
+      print *, ''
+	  
+c     Debug lines
+      print *, 'norm_vec', norm_vec
+      print *, ''
+      print *, 'h1 vector', h1_o_vec
+c     Debug lines
+      call get_mag(om_pos, dmag_om_pos)
+      print *, 'scaled vector', om_pos
+      print *, 'mag of scaled vector', dmag_om_pos
+c     Debug lines
+      open(unit=2,file='test.xyz',form='formatted',status='unknown')
+      write(2,*) 3
+      write(2,*) ''
+      write(2,1007) 'O', o_pos
+      write(2,1007) 'H', o_pos+h1_o_vec
+      write(2,1007) 'F', o_pos+om_pos
+      close(unit=2, status='keep')
+ 1007 format(a2,1x,3(f12.8,1x))
+					  
+
+					  
+METHOD TRYING TO USE EULER ANGLES
+					  
+c---------------------------------------------------------------------------------------------*
+c     Step 4: get normal vector from one bond w/ prev. normal vector (here chosen as x-z plane)
+c---------------------------------------------------------------------------------------------*
+      call get_cross_prod (norm_vec_xy, h1_o_vec, norm_vec_xz)
+      print *, 'norm_vec_xz', norm_vec_xz
+c
+c         Step 4.2: check if using correct hydrogen-oxygen bond
+          call get_angle(h2_o_vec,origin,norm_vec_xz,tranm,tranmi,
+     &                    cosphi)
+          if(costheta .lt. 0.d0) then !...then vector is not between bonds...
+c             ...so used the incorrect bond (h1), so use other one instead (h2)
+              call get_cross_prod (norm_vec_xy, h2_o_vec, norm_vec_xz)
+c             now check this one (h2)
+              call get_angle(h1_o_vec,origin,norm_vec_xz,tranm,tranmi,
+     &                    cosphi)
+              if(costheta .lt. 0.d0) then 
+                  print *, 'ISSUE: found 2 obtuse angles for both 
+     &     hydrogen bonds to normal vector => incorrect angle for water'
+c             both angles are obtuse => probably incorrect input positions for water or wrong molecule ran through subroutine
+              endif
+          endif
+c---------------------------------------------------------------------------------------------*
+c     Step 5: use normal vectors to get last normal vector for yz plane
+c---------------------------------------------------------------------------------------------*
+      call get_cross_prod(norm_vec_xz, norm_vec_xy,  norm_vec_yz)
+c     debug
+c      call get_angle(rom, origin, norm_vec_yz, tranm, tranmi, costheta)
+c     
+c---------------------------------------------------------------------------------------------*
+c     Step 6: get angles between normal vectors and coorelated axes
+c---------------------------------------------------------------------------------------------*
+c             norm_vec_yz --> x-axis
+c             norm_vec_xz --> y-axis
+c             norm_vec_xy --> z-axis
+c
+      call get_angle (
+     &    unit_z, origin, norm_vec_xy, tranm, tranmi, costheta)
+      theta   = acos(costheta) - pi/2.d0 !Subtract out the assumed starting polar angle (assume water lies in x-y plane)
+      print *, 'theta', theta
+      call get_angle(
+     &    unit_x, origin, norm_vec_yz, tranm, tranmi, costheta)
+      phi     = acos(costheta)
+      print *, 'phi', phi
+c---------------------------------------------------------------------------------------------*
+c     Step 7: add azimuthal (phi) and polar (theta) angles to massless charge radius vector
+c---------------------------------------------------------------------------------------------*
+c     Note: massless charge vector (rom) is already in spherical coordinates
+      print *, 'spherical rom before', rom
+      rom(2)  = rom(2) + theta
+      rom(3)  = rom(3) - phi
+      print *, ''
+      print *, 'spherical rom middle', rom
+c         adjust theta if needed (0 =< theta =< pi)
+          if (rom(2) .gt. pi) then
+              rom(2) = rom(2) - pi
+          elseif (rom(2) .lt. 0.d0) then
+              rom(2) = rom(2) + pi
+          endif
+      call get_cartesian( rom(1), rom(2), rom(3), x, y, z )
+      print *, ''
+      print *, 'spherical rom after', rom
+c     set spherical rom to cartesian
+      rom(1) = x
+      rom(2) = y
+      rom(3) = z

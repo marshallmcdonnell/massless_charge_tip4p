@@ -1,0 +1,14 @@
+Input file :: XYZ for water system
+tip4p.water.xyz
+Output file :: XYZ for water as TIP4P model
+outtip4p.water.xyz
+Massless Charge Element :: element to add for massless charge
+B
+Vol :: simulation volume (Angstroms)
+30.d0
+ucell :: 3x3 matrix that gives shape of simulation volume  
+1.d0 0.d0 0.d0
+0.d0 1.d0 0.d0
+0.d0 0.d0 1.d0
+rom :: massless charge radius from oxygen atom (angstroms)
+0.15d0
